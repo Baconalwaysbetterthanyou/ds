@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="taskflow.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="3361"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="projects" custom_title="0" dock_id="1" table="4,8:mainprojects"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011300ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- CHECK 1: 3 new users added (should be 18 total)
+SELECT 
+    'TODO 1: Add 3 new users' as check_name,
+    CASE 
+        WHEN COUNT(*) = 18 THEN 'PASS'
+        ELSE 'FAIL - Expected 18 users, found ' || COUNT(*)
+    END as result
+FROM users;
+
+-- CHECK 2: No overdue non-Done tasks with non-Urgent priority
+SELECT 
+    'TODO 2: Overdue tasks marked Urgent' as check_name,
+    CASE 
+        WHEN COUNT(*) = 0 THEN 'PASS'
+        ELSE 'FAIL - Found ' || COUNT(*) || ' overdue tasks not marked Urgent'
+    END as result
+FROM tasks
+WHERE due_date &lt; DATE('now') 
+  AND status != 'Done' 
+  AND priority != 'Urgent';
+
+-- CHECK 3: No tasks for Cancelled projects
+SELECT 
+    'TODO 3: Deleted Cancelled project tasks' as check_name,
+    CASE 
+        WHEN COUNT(*) = 0 THEN 'PASS'
+        ELSE 'FAIL - Found ' || COUNT(*) || ' tasks for Cancelled projects'
+    END as result
+FROM tasks t
+JOIN projects p ON t.project_id = p.project_id
+WHERE p.status = 'Cancelled';
+
+-- CHECK 4: No Open tasks with NULL assignee
+SELECT 
+    'TODO 4: Assigned unassigned Open tasks' as check_name,
+    CASE 
+        WHEN COUNT(*) = 0 THEN 'PASS'
+        ELSE 'FAIL - Found ' || COUNT(*) || ' Open tasks without assignee'
+    END as result
+FROM tasks
+WHERE status = 'Open' AND assignee_id IS NULL;
+
+-- CHECK 5: New project with 3 tasks
+SELECT 
+    'TODO 5: New project with 3 tasks' as check_name,
+    CASE 
+        WHEN COUNT(*) = 3 THEN 'PASS'
+        ELSE 'FAIL - Expected 3 tasks, found ' || COUNT(*)
+    END as result
+FROM tasks t
+JOIN projects p ON t.project_id = p.project_id
+WHERE p.name = 'AI Integration Platform';
+
+-- FINAL COUNTS
+SELECT 
+    'Final database counts:' as summary,
+    (SELECT COUNT(*) FROM teams) as teams,
+    (SELECT COUNT(*) FROM users) as users,
+    (SELECT COUNT(*) FROM projects) as projects,
+    (SELECT COUNT(*) FROM tasks) as tasks,
+    (SELECT COUNT(*) FROM task_comments) as comments;</sql><current_tab id="0"/></tab_sql></sqlb_project>
