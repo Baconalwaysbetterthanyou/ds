@@ -131,7 +131,17 @@ ORDER BY price DESC;
 -- Names, emails, and roles are up to you.
 -- Verify: COUNT(*) for users on the Engineering team is 2 higher than before.
 
--- Your query here
+--BEGIN TRANSACTION;
+
+INSERT INTO users (name, email, team, role)
+VALUES 
+('Alice Dev', 'alice@company.com', 'Engineering', 'Backend Engineer'),
+('Bob Code', 'bob@company.com', 'Engineering', 'Frontend Engineer');
+
+COMMIT;
+
+-- Verification Check: Run this to see your new count
+SELECT COUNT(*) FROM users WHERE team = 'Engineering';
 
 
 -- ============================================
@@ -141,9 +151,16 @@ ORDER BY price DESC;
 -- so it becomes 'In Progress'. Run a SELECT first to preview the rows you'll change.
 -- Verify: zero tasks remain in status 'Open' on Active projects.
 
--- Your preview here
+-- Preview the tasks before changing them
+SELECT t.id, t.title, t.status, p.name AS project_name, p.status AS project_status
+FROM tasks t
+JOIN projects p ON t.project_id = p.id
+WHERE t.status = 'Open' AND p.status = 'Active';
 
--- Your update here
+UPDATE tasks
+SET status = 'In Progress'
+WHERE status = 'Open'
+  AND project_id IN (SELECT id FROM projects WHERE status = 'Active');
 
 
 -- ============================================
@@ -155,7 +172,29 @@ ORDER BY price DESC;
 -- Verify: SELECT COUNT(*) FROM projects WHERE status='Cancelled' returns 0,
 -- and no orphan tasks or comments remain.
 
--- Your transaction here
+BEGIN TRANSACTION;
+
+-- 1. Remove task comments linked to tasks of cancelled projects
+DELETE FROM task_comments
+WHERE task_id IN (
+    SELECT id FROM tasks WHERE project_id IN (
+        SELECT id FROM projects WHERE status = 'Cancelled'
+    )
+);
+
+-- 2. Remove tasks linked to cancelled projects
+DELETE FROM tasks
+WHERE project_id IN (SELECT id FROM projects WHERE status = 'Cancelled');
+
+-- 3. Finally, delete the projects themselves
+DELETE FROM projects
+WHERE status = 'Cancelled';
+
+COMMIT;
+
+-- Verification Checks: All should return 0
+SELECT COUNT(*) FROM projects WHERE status = 'Cancelled';
+SELECT COUNT(*) FROM tasks WHERE project_id NOT IN (SELECT id FROM projects);
 
 
 -- ============================================
